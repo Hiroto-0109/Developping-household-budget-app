@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ダッシュボード</title>
+</head>
+<body>
+    <h2>管理者ダッシュボード</h2>
+    <p>管理者としてログイン中: {{ session['user_name'] }}</p>
+
+    <h3>カテゴリー管理</h3>
+    <a href="{{ url_for('add_category') }}">
+        <button>＋ カテゴリーを追加</button>
+    </a>
+
+    <h3>支払い方法管理</h3>
+    <a href="{{ url_for('add_payment_method') }}">
+        <button>＋ 支払い方法を追加</button>
+    </a>
+
+    <br><br>
+    <a href="{{ url_for('dashboard') }}">ユーザーのダッシュボードに戻る</a> |
+    <a href="{{ url_for('logout') }}">ログアウト</a>
+</body>
+</html>
