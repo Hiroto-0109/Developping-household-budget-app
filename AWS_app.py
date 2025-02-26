@@ -8,10 +8,10 @@ app.secret_key = 'your_secret_key'  # セッションを使うために必要
 # データベース接続のヘルパー関数
 
 # RDS の接続情報
-DB_HOST = "your-rds-instance-endpoint"
+DB_HOST = "household-budget-db.cd8wawccuqal.ap-northeast-3.rds.amazonaws.com"
 DB_NAME = "household_budget_db"
 DB_USER = "admin"
-DB_PASS = "your-password"
+DB_PASS = "9agj3CRr6tX3GgfwZier"
 def get_db_connection():
     conn = pymysql.connect(
         host=DB_HOST,
