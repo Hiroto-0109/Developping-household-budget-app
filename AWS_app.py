@@ -5,8 +5,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # セッションを使うために必要
 
-# データベース接続のヘルパー関数
+#ルーティングの確認
+@app.route('/')
+def home():
+    return "Hello, Flask is running on AWS!"
 
+
+# データベース接続のヘルパー関数
 # RDS の接続情報
 DB_HOST = "household-budget-db.cd8wawccuqal.ap-northeast-3.rds.amazonaws.com"
 DB_NAME = "household_budget_db"
@@ -36,14 +41,14 @@ def register():
         cursor = conn.cursor()
 
         # 既に登録されているメールアドレスがないかチェック
-        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
         existing_user = cursor.fetchone()
 
         if existing_user:
             conn.close()
             return "このメールアドレスは既に登録されています。別のメールアドレスを使用してください。"
 
-        cursor.execute('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', (name, email, hashed_password))
+        cursor.execute('INSERT INTO users (name, email, password) VALUES (%s, %s, %s)', (name, email, hashed_password))
         conn.commit()
         conn.close()
 
@@ -61,7 +66,8 @@ def login():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        user = cursor.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        user = cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+        user = cursor.fetchone()
         conn.close()
 
         if user and check_password_hash(user['password'], password):
@@ -86,14 +92,15 @@ def dashboard():
 
     # 月ごとの支出・収入を集計
     cursor.execute('''
-        SELECT strftime('%Y-%m', date) AS month, 
-               SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income,
-               SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS expense
-        FROM transactions 
-        WHERE user_id = ?
-        GROUP BY month
-        ORDER BY month DESC
-    ''', (session['user_id'],))
+    SELECT DATE_FORMAT(date, '%%Y-%%m') AS month, 
+           SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income,
+           SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS expense
+    FROM transactions 
+    WHERE user_id = %s
+    GROUP BY month
+    ORDER BY month DESC
+''', (session['user_id'],))
+
     
     monthly_totals = cursor.fetchall()
 
@@ -103,7 +110,7 @@ def dashboard():
         FROM transactions t
         JOIN categories c ON t.category = c.id
         LEFT JOIN payment_methods pm ON t.payment_method = pm.name
-        WHERE t.user_id = ? 
+        WHERE t.user_id = %s 
         ORDER BY t.date DESC
     ''', (session['user_id'],))
     
@@ -126,13 +133,16 @@ def edit_transaction(id):
     cursor = conn.cursor()
 
     # 該当する取引を取得
-    transaction = cursor.execute('SELECT * FROM transactions WHERE id = ? AND user_id = ?', (id, session['user_id'])).fetchone()
+    cursor.execute('SELECT * FROM transactions WHERE id = %s AND user_id = %s', (id, session['user_id']))
+    transaction = cursor.fetchone()
 
     # カテゴリーデータを取得
-    categories = cursor.execute('SELECT * FROM categories').fetchall()
+    categories = cursor.execute('SELECT * FROM categories')
+    categories = cursor.fetchall()
 
     #支払い方法データを取得
-    payment_methods = cursor.execute('SELECT * FROM payment_methods').fetchall()
+    payment_methods = cursor.execute('SELECT * FROM payment_methods')
+    payment_methods = cursor.fetchall() 
 
     if request.method == 'POST':
         date = request.form['date']
@@ -141,8 +151,8 @@ def edit_transaction(id):
         payment_method = request.form.get('payment_method') if request.form['transaction_type'] == 'expense' else None
         note = request.form['note']
 
-        cursor.execute('''UPDATE transactions SET date = ?, category = ?, amount = ?, payment_method = ?, note = ? 
-                          WHERE id = ? AND user_id = ?''', 
+        cursor.execute('''UPDATE transactions SET date = %s, category = %s, amount = %s, payment_method = %s, note = %s 
+                          WHERE id = %s AND user_id = %s''', 
                        (date, category, amount, payment_method, note, id, session['user_id']))
         conn.commit()
         conn.close()
@@ -163,7 +173,7 @@ def delete_transaction(id):
     cursor = conn.cursor()
 
     # **ログイン中の `user_id` のデータのみ削除可能**
-    cursor.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (id, session['user_id']))
+    cursor.execute('DELETE FROM transactions WHERE id = %s AND user_id = %s', (id, session['user_id']))
     
     conn.commit()
     conn.close()
@@ -209,7 +219,7 @@ def add_transaction():
         # データを追加
         cursor.execute('''
             INSERT INTO transactions (user_id, date, category, amount, payment_method, note)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         ''', (session['user_id'], date, category, amount, payment_method, note))
 
         conn.commit()
@@ -248,13 +258,13 @@ def add_category():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id FROM categories WHERE name = ?', (category_name,))
+        cursor.execute('SELECT id FROM categories WHERE name = %s', (category_name,))
         existing_category = cursor.fetchone()
 
         if existing_category:
             flash('このカテゴリーはすでに存在します。', 'warning')
         else:
-            cursor.execute('INSERT INTO categories (name) VALUES (?)', (category_name,))
+            cursor.execute('INSERT INTO categories (name) VALUES (%s)', (category_name,))
             conn.commit()
             flash('カテゴリーが追加されました！', 'success')
 
@@ -275,13 +285,13 @@ def add_payment_method():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT id FROM payment_methods WHERE name = ?', (payment_method_name,))
+        cursor.execute('SELECT id FROM payment_methods WHERE name = %s', (payment_method_name,))
         existing_method = cursor.fetchone()
 
         if existing_method:
             flash('この支払い方法はすでに存在します。', 'warning')
         else:
-            cursor.execute('INSERT INTO payment_methods (name) VALUES (?)', (payment_method_name,))
+            cursor.execute('INSERT INTO payment_methods (name) VALUES (%s)', (payment_method_name,))
             conn.commit()
             flash('支払い方法が追加されました！', 'success')
 
@@ -299,7 +309,7 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 
