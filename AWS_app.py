@@ -1,6 +1,14 @@
+print("Flask アプリを起動中...")  # ← デバッグ用
+
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import pymysql  # MySQL 用
 from werkzeug.security import generate_password_hash, check_password_hash
+
+
+
+print("Flask の必要なモジュールをインポート完了")  # ← デバッグ用
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # セッションを使うために必要
