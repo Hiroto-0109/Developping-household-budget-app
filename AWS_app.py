@@ -1,13 +1,7 @@
-print("Flask アプリを起動中...")  # ← デバッグ用
-
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import pymysql  # MySQL 用
 from werkzeug.security import generate_password_hash, check_password_hash
-
-
-
-print("Flask の必要なモジュールをインポート完了")  # ← デバッグ用
 
 
 app = Flask(__name__)
@@ -43,7 +37,7 @@ def register():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
-        hashed_password = generate_password_hash(password)
+        hashed_password = generate_password_hash(password,method="pbkdf2:sha256")
 
         conn = get_db_connection()
         cursor = conn.cursor()
