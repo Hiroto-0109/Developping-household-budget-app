@@ -1,0 +1,17 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "household-budget-db.cd8wawccuqal.ap-northeast-3.rds.amazonaws.com",
+            "port": 3306,
+            "driver": "MySQL",
+            "database": "household_budget_db",
+            "username": "admin",
+            "name": "AWS-household-budget"
+        }
+    ]
+}
