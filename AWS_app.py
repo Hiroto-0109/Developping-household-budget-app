@@ -95,8 +95,8 @@ def dashboard():
     # 月ごとの支出・収入を集計
     cursor.execute('''
     SELECT DATE_FORMAT(date, '%%Y-%%m') AS month, 
-           SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income,
-           SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS expense
+            SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) AS income,
+            SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) AS expense
     FROM transactions 
     WHERE user_id = %s
     GROUP BY month
