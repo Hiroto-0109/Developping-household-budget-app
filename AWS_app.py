@@ -108,9 +108,9 @@ def dashboard():
 
 
     # **ログに出力**
-    print("📌 [DEBUG] Monthly Totals:", monthly_totals)
+    print("[DEBUG] Monthly Totals:", monthly_totals)
 
-    
+
     # 取引履歴（最新月のデータを取得）
     cursor.execute('''
         SELECT t.id, t.date, c.name AS category_name, t.amount, pm.name AS payment_method, t.note
