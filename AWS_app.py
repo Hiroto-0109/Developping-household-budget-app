@@ -309,10 +309,9 @@ def add_transaction():
 
         # データを追加
         cursor.execute('''
-            INSERT INTO transactions (user_id, date, category, amount, payment_method, note)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (session['user_id'], date, category, amount, payment_method, note))
-
+            INSERT INTO transactions (user_id, date, category, amount, transaction_type, payment_method, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (session['user_id'], date, category, amount, transaction_type, payment_method, note))
         conn.commit()
         conn.close()
 
