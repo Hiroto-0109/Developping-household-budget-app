@@ -83,7 +83,86 @@ def login():
 
     return render_template('login.html')
 
-# ダッシュボード
+
+
+####パスワードリセット機能####
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Mail, Message
+
+# Flask-Mail 設定
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Gmailの場合
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = '1610.for.flaskmail@gmail.com'
+app.config['MAIL_PASSWORD'] = 'miek hqiv xokz uile'
+app.config['MAIL_DEFAULT_SENDER'] = '1610.for.flaskmail@gmail.com'
+
+mail = Mail(app)
+
+# URL トークンを生成・検証するシリアライザー
+s = URLSafeTimedSerializer(app.secret_key)
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password_request():
+    if request.method == 'POST':
+        email = request.form['email']
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            # トークンを生成
+            token = s.dumps(email, salt='password-reset-salt')
+
+            # リセット用 URL
+            reset_url = url_for('reset_password', token=token, _external=True)
+
+            # メール送信
+            msg = Message('パスワードリセット', recipients=[email])
+            msg.body = f"以下のリンクからパスワードをリセットしてください。\n{reset_url}\nこのリンクは1時間以内に使用してください。"
+            mail.send(msg)
+
+            flash('パスワードリセットのリンクをメールで送信しました。', 'info')
+        else:
+            flash('メールアドレスが見つかりませんでした。', 'danger')
+
+    return render_template('reset_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password-reset-salt', max_age=3600)  # 1時間有効
+    except:
+        flash('リンクが無効または期限切れです。', 'danger')
+        return redirect(url_for('reset_password_request'))
+
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if new_password != confirm_password:
+            flash('新しいパスワードが一致しません。', 'danger')
+            return redirect(url_for('reset_password', token=token))
+
+        hashed_password = generate_password_hash(new_password, method="pbkdf2:sha256")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET password = %s WHERE email = %s', (hashed_password, email))
+        conn.commit()
+        conn.close()
+
+        flash('パスワードが変更されました。ログインしてください。', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('set_new_password.html')
+
+
+
+### ダッシュボード ###
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
