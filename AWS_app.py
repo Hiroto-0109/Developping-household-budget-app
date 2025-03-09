@@ -91,12 +91,13 @@ from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Mail, Message
 
 # Flask-Mail 設定
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Gmailの場合
+app.config['MAIL_SERVER'] = 'smtp.gmail.com' #gmailの場合
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', '1610.for.flaskmail@gmail.com')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'miek hqiv xokz uile')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', '1610.for.flaskmail@gmail.com')
+
 
 mail = Mail(app)
 
@@ -115,22 +116,29 @@ def reset_password_request():
         conn.close()
 
         if user:
-            # トークンを生成
-            token = s.dumps(email, salt='password-reset-salt')
+            try:
+                # トークンを生成
+                token = s.dumps(email, salt='password-reset-salt')
 
-            # リセット用 URL
-            reset_url = url_for('reset_password', token=token, _external=True)
+                # リセット用 URL
+                reset_url = url_for('reset_password', token=token, _external=True)
 
-            # メール送信
-            msg = Message('パスワードリセット', recipients=[email])
-            msg.body = f"以下のリンクからパスワードをリセットしてください。\n{reset_url}\nこのリンクは1時間以内に使用してください。"
-            mail.send(msg)
+                # メール送信
+                msg = Message('パスワードリセット', sender=app.config['MAIL_DEFAULT_SENDER'], recipients=[email])
+                msg.body = f"以下のリンクからパスワードをリセットしてください。\n{reset_url}\nこのリンクは1時間以内に使用してください。"
 
-            flash('パスワードリセットのリンクをメールで送信しました。', 'info')
+                mail.send(msg)
+                flash('パスワードリセットのリンクをメールで送信しました。', 'info')
+
+            except Exception as e:
+                flash(f'メール送信エラー: {str(e)}', 'danger')
+                print(f"メール送信エラー: {e}")
+
         else:
             flash('メールアドレスが見つかりませんでした。', 'danger')
 
     return render_template('reset_password.html')
+
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
